@@ -21,11 +21,12 @@ class ReacherEnv(mujoco_env.MujocoEnv, utils.EzPickle):
         self.viewer.cam.trackbodyid = 0
 
     def reset_model(self):
-        qpos = self.np_random.uniform(low=-0.1, high=0.1, size=self.model.nq) + self.init_qpos
-        while True:
-            self.goal = self.np_random.uniform(low=-.2, high=.2, size=2)
-            if np.linalg.norm(self.goal) < 0.2:
-                break
+        qpos = self.np_random.uniform(low=-0.01, high=0.01, size=self.model.nq) + self.init_qpos
+        self.goal = np.array([-0.1, 0.1])
+        # while True:
+        #     self.goal = self.np_random.uniform(low=-.2, high=.2, size=2)
+        #     if np.linalg.norm(self.goal) < 0.2:
+        #         break
         qpos[-2:] = self.goal
         qvel = self.init_qvel + self.np_random.uniform(low=-.005, high=.005, size=self.model.nv)
         qvel[-2:] = 0
@@ -34,10 +35,22 @@ class ReacherEnv(mujoco_env.MujocoEnv, utils.EzPickle):
 
     def _get_obs(self):
         theta = self.sim.data.qpos.flat[:2]
+        
+        # Original code:
+        # return np.concatenate([
+        #     np.cos(theta),
+        #     np.sin(theta),
+        #     self.sim.data.qpos.flat[2:],
+        #     self.sim.data.qvel.flat[:2],
+        #     self.get_body_com("fingertip") - self.get_body_com("target")
+        # ])
+
+        # Get fingertip position as the first features (convinient)
+        # Dont look at the goal position (since we have fixed that)
         return np.concatenate([
+            self.get_body_com("fingertip"),
             np.cos(theta),
             np.sin(theta),
             self.sim.data.qpos.flat[2:],
-            self.sim.data.qvel.flat[:2],
-            self.get_body_com("fingertip") - self.get_body_com("target")
+            self.sim.data.qvel.flat[:2]
         ])
